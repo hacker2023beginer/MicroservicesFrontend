@@ -7,37 +7,36 @@ export default function Payments() {
     const userId = localStorage.getItem('userId');
 
     useEffect(() => {
-        if (userId) {
+        if (userId && userId !== 'null' && userId !== 'undefined') {
             fetchPayments();
             fetchTotalSum();
         }
     }, [userId]);
 
+    // ИСПОЛЬЗУЕМ ТВОЙ НОВЫЙ МЕТОД: GET /payments?userId={id}
     const fetchPayments = async () => {
         try {
-            // ВНИМАНИЕ: Тебе нужно создать этот GET-метод в PaymentServiceController
-            // Возвращающий список (List<PaymentResponse>) по userId
-            const response = await api.get(`/payments/user/${userId}`);
+            const response = await api.get('/payments', {
+                params: { userId: userId }
+            });
             setPayments(response.data);
         } catch (error) {
-            console.error('Не удалось загрузить список платежей');
+            console.error('Не удалось загрузить историю платежей', error);
         }
     };
 
     const fetchTotalSum = async () => {
         try {
-            // Твой метод требует параметры from и to. 
-            // Подставляем примерные даты для теста:
             const response = await api.get('/payments/sum/user', {
                 params: { 
                     userId: userId, 
-                    from: '2000-01-01', 
-                    to: '2099-12-31' 
+                    from: '2000-01-01T00:00:00', 
+                    to: '2099-12-31T23:59:59' 
                 }
             });
             setTotalSum(response.data);
         } catch (error) {
-            console.error('Не удалось загрузить сумму платежей');
+            console.error('Не удалось загрузить сумму платежей', error);
         }
     };
 
@@ -45,7 +44,7 @@ export default function Payments() {
         <div>
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <h2>Мои платежи</h2>
-                <span className="badge bg-primary fs-5">
+                <span className="badge bg-success fs-5 shadow-sm">
                     Всего оплачено: {totalSum} $
                 </span>
             </div>
@@ -54,11 +53,11 @@ export default function Payments() {
                 <div className="alert alert-info">У вас пока нет проведенных платежей.</div>
             ) : (
                 <div className="table-responsive">
-                    <table className="table table-hover align-middle">
+                    <table className="table table-hover align-middle shadow-sm">
                         <thead className="table-dark">
                             <tr>
                                 <th>ID Платежа</th>
-                                <th>ID Заказа</th>
+                                <th>Заказ №</th>
                                 <th>Сумма</th>
                                 <th>Дата</th>
                                 <th>Статус</th>
@@ -67,13 +66,14 @@ export default function Payments() {
                         <tbody>
                             {payments.map(payment => (
                                 <tr key={payment.id}>
-                                    <td>{payment.id}</td>
-                                    <td>{payment.orderId}</td>
-                                    <td><strong>{payment.amount}</strong></td>
-                                    {/* Форматируем дату, если она приходит в ISO формате */}
-                                    <td>{new Date(payment.createdAt).toLocaleDateString()}</td>
+                                    <td className="text-muted small">{payment.id}</td>
+                                    <td className="fw-bold">{payment.orderId}</td>
+                                    <td><strong>{payment.paymentAmount} $</strong></td>
+                                    <td>{payment.timestamp ? new Date(payment.timestamp).toLocaleString() : '-'}</td>
                                     <td>
-                                        <span className="badge bg-success">Успешно</span>
+                                        <span className={`badge ${payment.status === 'SUCCESS' || payment.status === 'PAID' ? 'bg-success' : 'bg-warning text-dark'}`}>
+                                            {payment.status}
+                                        </span>
                                     </td>
                                 </tr>
                             ))}

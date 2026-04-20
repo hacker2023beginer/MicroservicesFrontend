@@ -1,10 +1,14 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminRoute from './components/AdminRoute'; // <-- Убедись, что импортировал!
+
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Orders from './pages/Orders';
 import Payments from './pages/Payments';
-import Navbar from './components/Navbar'; // Простой компонент с меню Bootstrap
+import Profile from './pages/Profile';
+import AdminPanel from './pages/AdminPanel';
 
 function App() {
   return (
@@ -15,13 +19,13 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           
-          {/* Защищенные маршруты */}
-          <Route path="/orders" element={
-            <ProtectedRoute><Orders /></ProtectedRoute>
-          } />
-          <Route path="/payments" element={
-            <ProtectedRoute><Payments /></ProtectedRoute>
-          } />
+          {/* Обычные защищенные маршруты */}
+          <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+          <Route path="/payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          
+          {/* СТРОГИЙ МАРШРУТ ДЛЯ АДМИНА */}
+          <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
           
           <Route path="*" element={<Navigate to="/orders" />} />
         </Routes>

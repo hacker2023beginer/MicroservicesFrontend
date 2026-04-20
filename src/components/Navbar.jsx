@@ -14,6 +14,7 @@ export default function Navbar() {
     return (
         <nav className="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
             <div className="container">
+                <Link className="nav-link text-warning" to="/admin">Админка</Link>
                 <Link className="navbar-brand" to="/orders">MicroApp</Link>
                 <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                     <span className="navbar-toggler-icon"></span>
@@ -28,6 +29,10 @@ export default function Navbar() {
                                 </li>
                                 <li className="nav-item">
                                     <Link className="nav-link" to="/payments">Платежи</Link>
+                                </li>
+                                <li className="nav-item">
+                                    {/* Добавляем ссылку на профиль */}
+                                    <Link className="nav-link text-info fw-bold" to="/profile">Мой профиль</Link>
                                 </li>
                             </>
                         )}
