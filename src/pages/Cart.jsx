@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axiosConfig';
+import { useTranslation } from 'react-i18next'; // Импорт хука
 
 export default function Cart() {
+    const { t } = useTranslation(); // Инициализация
     const [cart, setCart] = useState([]);
-    const [email, setEmail] = useState(''); // Email нужен для OrderRequest
+    const [email, setEmail] = useState('');
     const userId = localStorage.getItem('userId');
     const navigate = useNavigate();
 
@@ -14,13 +16,12 @@ export default function Cart() {
         fetchUserEmail();
     }, []);
 
-    // Подтягиваем email пользователя для оформления заказа
     const fetchUserEmail = async () => {
         try {
             const response = await api.get(`/users/${userId}`);
             setEmail(response.data.email);
         } catch (error) {
-            console.error('Ошибка загрузки профиля', error);
+            console.error(t('cart.errors.profile'), error);
         }
     };
 
@@ -34,13 +35,11 @@ export default function Cart() {
         return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     };
 
-    // ГЛАВНАЯ ФУНКЦИЯ: ОФОРМЛЕНИЕ ЗАКАЗА
     const handleCheckout = async () => {
-        if (cart.length === 0) return alert('Корзина пуста!');
-        if (!email) return alert('Укажите email для оформления заказа');
+        if (cart.length === 0) return alert(t('cart.alerts.empty'));
+        if (!email) return alert(t('cart.alerts.no_email'));
 
         try {
-            // 1. Создаем сам заказ (Order)
             const orderRequest = {
                 userId: parseInt(userId),
                 status: 'CREATED',
@@ -51,8 +50,6 @@ export default function Cart() {
             const orderResponse = await api.post('/orders/createorder', orderRequest);
             const newOrderId = orderResponse.data.id;
 
-            // 2. Добавляем товары в заказ (OrderItems)
-            // Используем Promise.all, чтобы дождаться сохранения всех позиций
             const orderItemsPromises = cart.map(item => {
                 const orderItemReq = {
                     orderId: newOrderId,
@@ -64,24 +61,25 @@ export default function Cart() {
 
             await Promise.all(orderItemsPromises);
 
-            // 3. Очищаем корзину и отправляем платить
             localStorage.removeItem('cart');
-            alert('Заказ успешно оформлен! Переходим к оплате.');
-            navigate('/orders'); // Перекидываем на страницу заказов
+            alert(t('cart.alerts.success'));
+            navigate('/orders');
 
         } catch (error) {
-            console.error('Ошибка при оформлении заказа', error);
-            alert('Произошла ошибка при оформлении. Проверьте консоль.');
+            console.error(t('cart.errors.checkout'), error);
+            alert(t('cart.alerts.error'));
         }
     };
 
     return (
         <div className="row justify-content-center">
             <div className="col-md-8">
-                <h2 className="mb-4">Корзина</h2>
+                <h2 className="mb-4">{t('cart.title')}</h2>
                 
                 {cart.length === 0 ? (
-                    <div className="alert alert-secondary">Ваша корзина пуста. <a href="/shop">Перейти в магазин</a></div>
+                    <div className="alert alert-secondary">
+                        {t('cart.empty_msg')} <a href="/shop">{t('cart.go_to_shop')}</a>
+                    </div>
                 ) : (
                     <div className="card shadow-sm">
                         <div className="card-body">
@@ -95,7 +93,7 @@ export default function Cart() {
                                         <div>
                                             <span className="me-3 fw-bold text-success">{item.price * item.quantity} $</span>
                                             <button className="btn btn-sm btn-outline-danger" onClick={() => removeFromCart(item.id)}>
-                                                <i className="bi bi-trash"></i> Удалить
+                                                <i className="bi bi-trash"></i> {t('cart.remove')}
                                             </button>
                                         </div>
                                     </li>
@@ -104,14 +102,14 @@ export default function Cart() {
                             
                             <div className="d-flex justify-content-between align-items-end p-3 bg-light rounded">
                                 <div>
-                                    <label className="form-label small text-muted mb-1">Email для подтверждения:</label>
+                                    <label className="form-label small text-muted mb-1">{t('cart.email_label')}</label>
                                     <input type="email" className="form-control form-control-sm" 
                                         value={email} onChange={e => setEmail(e.target.value)} required />
                                 </div>
                                 <div className="text-end">
-                                    <h5 className="mb-1">Итого: <span className="text-primary fw-bold">{calculateTotal()} $</span></h5>
+                                    <h5 className="mb-1">{t('cart.total')}: <span className="text-primary fw-bold">{calculateTotal()} $</span></h5>
                                     <button className="btn btn-success mt-2" onClick={handleCheckout}>
-                                        Оформить заказ
+                                        {t('cart.checkout_btn')}
                                     </button>
                                 </div>
                             </div>

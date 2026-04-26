@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import api from '../api/axiosConfig';
+import { useTranslation } from 'react-i18next'; // <-- Импорт хука
 
 export default function Orders() {
+    const { t } = useTranslation(); // <-- Инициализация
     const [orders, setOrders] = useState([]);
     const [showForm, setShowForm] = useState(false);
-    const [editingOrderId, setEditingOrderId] = useState(null); // ID заказа, который мы сейчас редактируем
+    const [editingOrderId, setEditingOrderId] = useState(null); 
     
     const [formData, setFormData] = useState({ email: '', status: 'CREATED', totalPrice: 0 });
     const userId = localStorage.getItem('userId');
@@ -19,7 +21,7 @@ export default function Orders() {
             const response = await api.get(`/orders/byuserid/${userId}`);
             setOrders(response.data);
         } catch (error) {
-            console.error('Не удалось загрузить заказы', error);
+            console.error('Fetch orders error', error);
         }
     };
 
@@ -27,21 +29,18 @@ export default function Orders() {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    // Открытие формы для СОЗДАНИЯ
     const handleOpenCreate = () => {
         setFormData({ email: '', status: 'CREATED', totalPrice: 0 });
         setEditingOrderId(null);
         setShowForm(true);
     };
 
-    // Открытие формы для РЕДАКТИРОВАНИЯ
     const handleOpenEdit = (order) => {
         setFormData({ email: order.email, status: order.status, totalPrice: order.totalPrice });
         setEditingOrderId(order.id);
         setShowForm(true);
     };
 
-    // Универсальный сабмит (и для создания, и для обновления)
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
@@ -53,65 +52,68 @@ export default function Orders() {
             };
 
             if (editingOrderId) {
-                // Если есть ID, делаем PUT запрос (Обновление)
                 await api.put(`/orders/${editingOrderId}`, orderRequest);
-                alert('Заказ успешно обновлен!');
+                alert(t('orders.alerts.update_success'));
             } else {
-                // Если ID нет, делаем POST запрос (Создание)
                 await api.post('/orders/createorder', orderRequest);
-                alert('Заказ успешно создан!');
+                alert(t('orders.alerts.create_success'));
             }
             
             setShowForm(false);
             fetchOrders(); 
         } catch (error) {
-            console.error('Ошибка сохранения заказа', error);
+            console.error('Save order error', error);
+            alert(t('orders.errors.save_failed'));
         }
     };
 
     const handlePay = async (orderId, totalPrice) => {
         try {
             await api.post('/payments', { orderId: String(orderId), userId: String(userId), paymentAmount: totalPrice });
-            alert('Оплата прошла успешно!');
+            alert(t('orders.alerts.pay_success'));
             fetchOrders(); 
         } catch (error) {
-            console.error('Ошибка оплаты', error);
+            console.error('Payment error', error);
+            alert(t('orders.errors.pay_failed'));
         }
     };
 
     const handleDelete = async (orderId) => {
-        if (window.confirm('Вы уверены, что хотите удалить этот заказ?')) {
+        if (window.confirm(t('orders.alerts.delete_confirm'))) {
             try {
                 await api.delete(`/orders/${orderId}`);
                 fetchOrders(); 
             } catch (error) {
-                console.error('Ошибка удаления', error);
+                console.error('Delete error', error);
+                alert(t('orders.errors.delete_failed'));
             }
         }
     };
 
     return (
         <div>
-            <h2 className="mb-4">Мои заказы</h2>
+            <h2 className="mb-4">{t('orders.title')}</h2>
             <button className={`btn mb-4 ${showForm && !editingOrderId ? 'btn-secondary' : 'btn-success'}`} onClick={handleOpenCreate}>
-                {showForm && !editingOrderId ? 'Отменить создание' : 'Создать заказ'}
+                {showForm && !editingOrderId ? t('orders.btn.cancel_create') : t('orders.btn.create_order')}
             </button>
 
             {showForm && (
                 <div className="card shadow-sm mb-4 border-primary">
                     <div className="card-body">
-                        <h5 className="card-title">{editingOrderId ? `Редактирование заказа #${editingOrderId}` : 'Новый заказ'}</h5>
+                        <h5 className="card-title">
+                            {editingOrderId ? t('orders.form.edit_title', { id: editingOrderId }) : t('orders.form.new_title')}
+                        </h5>
                         <form onSubmit={handleSubmit} className="row g-3">
                             <div className="col-md-4">
-                                <label className="form-label">Email</label>
+                                <label className="form-label">{t('orders.form.email')}</label>
                                 <input type="email" name="email" className="form-control" value={formData.email} onChange={handleInputChange} required />
                             </div>
                             <div className="col-md-4">
-                                <label className="form-label">Сумма</label>
+                                <label className="form-label">{t('orders.form.amount')}</label>
                                 <input type="number" step="0.01" min="0" name="totalPrice" className="form-control" value={formData.totalPrice} onChange={handleInputChange} required />
                             </div>
                             <div className="col-md-4">
-                                <label className="form-label">Статус</label>
+                                <label className="form-label">{t('orders.form.status')}</label>
                                 <select name="status" className="form-select" value={formData.status} onChange={handleInputChange}>
                                     <option value="CREATED">CREATED</option>
                                     <option value="PROCESSING">PROCESSING</option>
@@ -119,8 +121,8 @@ export default function Orders() {
                                 </select>
                             </div>
                             <div className="col-12">
-                                <button type="submit" className="btn btn-primary me-2">Сохранить</button>
-                                <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>Отмена</button>
+                                <button type="submit" className="btn btn-primary me-2">{t('orders.form.save')}</button>
+                                <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)}>{t('orders.form.cancel')}</button>
                             </div>
                         </form>
                     </div>
@@ -128,17 +130,17 @@ export default function Orders() {
             )}
             
             {orders.length === 0 ? (
-                <div className="alert alert-info">У вас пока нет заказов.</div>
+                <div className="alert alert-info">{t('orders.empty')}</div>
             ) : (
                 <div className="table-responsive">
                     <table className="table table-striped align-middle">
                         <thead className="table-dark">
                             <tr>
-                                <th>ID</th>
-                                <th>Email</th>
-                                <th>Статус</th>
-                                <th>Сумма</th>
-                                <th>Действия</th>
+                                <th>{t('orders.table.id')}</th>
+                                <th>{t('orders.table.email')}</th>
+                                <th>{t('orders.table.status')}</th>
+                                <th>{t('orders.table.amount')}</th>
+                                <th>{t('orders.table.actions')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -150,11 +152,10 @@ export default function Orders() {
                                     <td><strong>{order.totalPrice}</strong></td>
                                     <td>
                                         {order.status !== 'PAID' && (
-                                            <button onClick={() => handlePay(order.id, order.totalPrice)} className="btn btn-sm btn-success me-2">Оплатить</button>
+                                            <button onClick={() => handlePay(order.id, order.totalPrice)} className="btn btn-sm btn-success me-2">{t('orders.btn.pay')}</button>
                                         )}
-                                        {/* Новая кнопка Изменить */}
-                                        <button onClick={() => handleOpenEdit(order)} className="btn btn-sm btn-primary me-2">Изменить</button>
-                                        <button onClick={() => handleDelete(order.id)} className="btn btn-sm btn-danger">Удалить</button>
+                                        <button onClick={() => handleOpenEdit(order)} className="btn btn-sm btn-primary me-2">{t('orders.btn.edit')}</button>
+                                        <button onClick={() => handleDelete(order.id)} className="btn btn-sm btn-danger">{t('orders.btn.delete')}</button>
                                     </td>
                                 </tr>
                             ))}

@@ -1,19 +1,17 @@
 import { useState, useEffect } from 'react';
 import api from '../api/axiosConfig';
+import { useTranslation } from 'react-i18next'; // <-- Импорт хука
 
 export default function AdminPanel() {
-    // Состояния для пользователей
+    const { t } = useTranslation(); // <-- Инициализация
     const [usersPage, setUsersPage] = useState({ content: [], totalPages: 0 });
     const [userPageNum, setUserPageNum] = useState(0);
 
-    // Состояния для заказов
     const [ordersPage, setOrdersPage] = useState({ content: [], totalPages: 0 });
     const [filters, setFilters] = useState({ status: '', from: '', to: '' });
 
-    // Состояние для глобальной выручки
     const [globalSum, setGlobalSum] = useState(0);
 
-    // НОВОЕ: Состояния для товаров (Items)
     const [items, setItems] = useState([]);
     const [newItem, setNewItem] = useState({ name: '', price: '' });
 
@@ -21,7 +19,7 @@ export default function AdminPanel() {
         fetchUsers(userPageNum);
         fetchGlobalSum();
         fetchFilteredOrders();
-        fetchItems(); // Загружаем товары при открытии админки
+        fetchItems();
     }, [userPageNum]);
 
     const fetchUsers = async (page) => {
@@ -30,7 +28,7 @@ export default function AdminPanel() {
             const data = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
             setUsersPage(data);
         } catch (error) {
-            console.error('Ошибка загрузки пользователей', error);
+            console.error('Fetch users error', error);
         }
     };
 
@@ -43,7 +41,7 @@ export default function AdminPanel() {
             }
             fetchUsers(userPageNum); 
         } catch (error) {
-            console.error('Ошибка изменения статуса', error);
+            console.error('Toggle status error', error);
         }
     };
 
@@ -59,33 +57,30 @@ export default function AdminPanel() {
             const data = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
             setOrdersPage(data);
         } catch (error) {
-            console.error('Ошибка поиска заказов', error);
+            console.error('Search orders error', error);
         }
     };
 
     const fetchGlobalSum = async () => {
         try {
             const response = await api.get('/payments/sum', {
-                // Добавили 'Z' на конце обеих дат!
                 params: { from: '2000-01-01T00:00:00Z', to: '2099-12-31T23:59:59Z' }
             });
             setGlobalSum(response.data);
         } catch (error) {
-            console.error('Ошибка загрузки глобальной суммы', error);
+            console.error('Fetch global sum error', error);
         }
     };
 
-    // НОВОЕ: Загрузка списка товаров
     const fetchItems = async () => {
         try {
             const response = await api.get('/orders/items');
             setItems(response.data);
         } catch (error) {
-            console.error('Ошибка загрузки товаров', error);
+            console.error('Fetch items error', error);
         }
     };
 
-    // НОВОЕ: Создание товара
     const handleCreateItem = async (e) => {
         e.preventDefault();
         try {
@@ -93,48 +88,46 @@ export default function AdminPanel() {
                 name: newItem.name,
                 price: parseFloat(newItem.price)
             });
-            alert('Товар успешно добавлен в каталог!');
-            setNewItem({ name: '', price: '' }); // Очищаем форму
-            fetchItems(); // Обновляем список
+            alert(t('admin.alerts.item_added'));
+            setNewItem({ name: '', price: '' }); 
+            fetchItems(); 
         } catch (error) {
-            console.error('Ошибка создания товара', error);
-            alert('Не удалось создать товар.');
+            console.error('Create item error', error);
+            alert(t('admin.alerts.item_add_error'));
         }
     };
 
-    // НОВОЕ: Удаление товара
     const handleDeleteItem = async (id) => {
-        if (window.confirm('Вы уверены, что хотите удалить этот товар из каталога?')) {
+        if (window.confirm(t('admin.alerts.item_del_confirm'))) {
             try {
                 await api.delete(`/orders/items/${id}`);
                 fetchItems();
             } catch (error) {
-                console.error('Ошибка удаления товара', error);
-                alert('Ошибка удаления. Возможно, товар уже используется в чьем-то заказе.');
+                console.error('Delete item error', error);
+                alert(t('admin.alerts.item_del_error'));
             }
         }
     };
 
     return (
         <div className="container-fluid">
-            <h2 className="mb-4 text-danger border-bottom pb-2">Панель Администратора</h2>
+            <h2 className="mb-4 text-danger border-bottom pb-2">{t('admin.title')}</h2>
 
             <div className="row">
-                {/* БЛОК 1: Управление пользователями */}
                 <div className="col-lg-6 mb-4">
                     <div className="card shadow-sm h-100">
                         <div className="card-header bg-dark text-white">
-                            <h5 className="mb-0">Управление пользователями</h5>
+                            <h5 className="mb-0">{t('admin.users_mgmt')}</h5>
                         </div>
                         <div className="card-body">
                             <table className="table table-sm align-middle">
                                 <thead>
                                     <tr>
-                                        <th>ID</th>
-                                        <th>Email</th>
-                                        <th>Имя</th>
-                                        <th>Статус</th>
-                                        <th>Действие</th>
+                                        <th>{t('admin.table.id')}</th>
+                                        <th>{t('admin.table.email')}</th>
+                                        <th>{t('admin.table.name')}</th>
+                                        <th>{t('admin.table.status')}</th>
+                                        <th>{t('admin.table.action')}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -145,7 +138,7 @@ export default function AdminPanel() {
                                             <td>{u.name} {u.surname}</td>
                                             <td>
                                                 <span className={`badge ${u.active ? 'bg-success' : 'bg-danger'}`}>
-                                                    {u.active ? 'Активен' : 'Забанен'}
+                                                    {u.active ? t('admin.status.active') : t('admin.status.banned')}
                                                 </span>
                                             </td>
                                             <td>
@@ -153,7 +146,7 @@ export default function AdminPanel() {
                                                     className={`btn btn-sm ${u.active ? 'btn-outline-danger' : 'btn-outline-success'}`}
                                                     onClick={() => toggleUserStatus(u.id, u.active)}
                                                 >
-                                                    {u.active ? 'Заблокировать' : 'Разблокировать'}
+                                                    {u.active ? t('admin.status.block') : t('admin.status.unblock')}
                                                 </button>
                                             </td>
                                         </tr>
@@ -163,28 +156,27 @@ export default function AdminPanel() {
                             <div className="d-flex justify-content-between">
                                 <button className="btn btn-sm btn-secondary" 
                                     disabled={userPageNum === 0} 
-                                    onClick={() => setUserPageNum(userPageNum - 1)}>Назад</button>
-                                <span>Страница {userPageNum + 1} из {usersPage.totalPages}</span>
+                                    onClick={() => setUserPageNum(userPageNum - 1)}>{t('admin.pagination.prev')}</button>
+                                <span>{t('admin.pagination.page', { current: userPageNum + 1, total: usersPage.totalPages || 1 })}</span>
                                 <button className="btn btn-sm btn-secondary" 
                                     disabled={userPageNum >= (usersPage.totalPages - 1)} 
-                                    onClick={() => setUserPageNum(userPageNum + 1)}>Вперед</button>
+                                    onClick={() => setUserPageNum(userPageNum + 1)}>{t('admin.pagination.next')}</button>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* БЛОК 2: Глобальная статистика и поиск заказов */}
                 <div className="col-lg-6 mb-4">
                     <div className="card shadow-sm mb-4 border-success">
                         <div className="card-body text-center bg-success text-white rounded">
-                            <h4>Общая выручка платформы</h4>
+                            <h4>{t('admin.revenue.title')}</h4>
                             <h2 className="display-5 fw-bold">{globalSum} $</h2>
                         </div>
                     </div>
 
                     <div className="card shadow-sm">
                         <div className="card-header bg-primary text-white">
-                            <h5 className="mb-0">Глобальный поиск заказов</h5>
+                            <h5 className="mb-0">{t('admin.orders.title')}</h5>
                         </div>
                         <div className="card-body">
                             <div className="row g-2 mb-3">
@@ -199,13 +191,15 @@ export default function AdminPanel() {
                                 <div className="col-md-4">
                                     <select className="form-select form-select-sm" 
                                         onChange={e => setFilters({...filters, status: e.target.value})}>
-                                        <option value="">Все статусы</option>
+                                        <option value="">{t('admin.orders.all_statuses')}</option>
                                         <option value="CREATED">CREATED</option>
                                         <option value="PAID">PAID</option>
                                     </select>
                                 </div>
                                 <div className="col-12">
-                                    <button className="btn btn-sm btn-primary w-100" onClick={fetchFilteredOrders}>Найти</button>
+                                    <button className="btn btn-sm btn-primary w-100" onClick={fetchFilteredOrders}>
+                                        {t('admin.orders.search_btn')}
+                                    </button>
                                 </div>
                             </div>
 
@@ -214,7 +208,7 @@ export default function AdminPanel() {
                                     {ordersPage.content?.map(order => (
                                         <li key={order.id} className="list-group-item d-flex justify-content-between align-items-center">
                                             <div>
-                                                <strong>Заказ #{order.id}</strong> <small className="text-muted">({order.email})</small>
+                                                <strong>{t('admin.orders.order_number', { id: order.id })}</strong> <small className="text-muted">({order.email})</small>
                                             </div>
                                             <div>
                                                 <span className="me-3 fw-bold">{order.totalPrice} $</span>
@@ -222,7 +216,7 @@ export default function AdminPanel() {
                                             </div>
                                         </li>
                                     ))}
-                                    {ordersPage.content?.length === 0 && <small className="text-muted">Ничего не найдено</small>}
+                                    {ordersPage.content?.length === 0 && <small className="text-muted">{t('admin.orders.not_found')}</small>}
                                 </ul>
                             </div>
                         </div>
@@ -230,49 +224,46 @@ export default function AdminPanel() {
                 </div>
             </div>
 
-            {/* НОВЫЙ БЛОК 3: Управление Каталогом (Items) */}
             <div className="row">
                 <div className="col-12 mb-4">
                     <div className="card shadow-sm border-warning">
                         <div className="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
-                            <h5 className="mb-0 fw-bold">Управление каталогом товаров (Витрина)</h5>
+                            <h5 className="mb-0 fw-bold">{t('admin.catalog.title')}</h5>
                         </div>
                         <div className="card-body">
                             <div className="row">
-                                {/* Форма добавления */}
                                 <div className="col-md-4 border-end">
-                                    <h6 className="mb-3">Добавить новый товар</h6>
+                                    <h6 className="mb-3">{t('admin.catalog.add_new')}</h6>
                                     <form onSubmit={handleCreateItem}>
                                         <div className="mb-2">
-                                            <label className="form-label small">Название товара</label>
+                                            <label className="form-label small">{t('admin.catalog.name_label')}</label>
                                             <input type="text" className="form-control form-control-sm" required
                                                 value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} 
-                                                placeholder="Например: Смартфон X" />
+                                                placeholder={t('admin.catalog.name_placeholder')} />
                                         </div>
                                         <div className="mb-3">
-                                            <label className="form-label small">Цена ($)</label>
+                                            <label className="form-label small">{t('admin.catalog.price_label')}</label>
                                             <input type="number" step="0.01" min="0" className="form-control form-control-sm" required
                                                 value={newItem.price} onChange={e => setNewItem({...newItem, price: e.target.value})} 
                                                 placeholder="999.99" />
                                         </div>
-                                        <button type="submit" className="btn btn-sm btn-success w-100">Добавить в каталог</button>
+                                        <button type="submit" className="btn btn-sm btn-success w-100">{t('admin.catalog.add_btn')}</button>
                                     </form>
                                 </div>
                                 
-                                {/* Список существующих товаров */}
                                 <div className="col-md-8">
-                                    <h6 className="mb-3">Текущие товары в магазине</h6>
+                                    <h6 className="mb-3">{t('admin.catalog.current_items')}</h6>
                                     {items.length === 0 ? (
-                                        <div className="alert alert-secondary py-2">Каталог пуст. Добавьте первый товар!</div>
+                                        <div className="alert alert-secondary py-2">{t('admin.catalog.empty')}</div>
                                     ) : (
                                         <div className="table-responsive" style={{ maxHeight: '300px', overflowY: 'auto' }}>
                                             <table className="table table-sm table-hover align-middle">
                                                 <thead className="table-light sticky-top">
                                                     <tr>
-                                                        <th>ID</th>
-                                                        <th>Название</th>
-                                                        <th>Цена</th>
-                                                        <th className="text-end">Действие</th>
+                                                        <th>{t('admin.table.id')}</th>
+                                                        <th>{t('admin.catalog.table.name')}</th>
+                                                        <th>{t('admin.catalog.table.price')}</th>
+                                                        <th className="text-end">{t('admin.table.action')}</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -286,7 +277,7 @@ export default function AdminPanel() {
                                                                     className="btn btn-sm btn-outline-danger"
                                                                     onClick={() => handleDeleteItem(item.id)}
                                                                 >
-                                                                    <i className="bi bi-trash"></i> Удалить
+                                                                    <i className="bi bi-trash"></i> {t('admin.catalog.delete_btn')}
                                                                 </button>
                                                             </td>
                                                         </tr>

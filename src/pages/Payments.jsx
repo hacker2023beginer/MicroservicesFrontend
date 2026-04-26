@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import api from '../api/axiosConfig';
+import { useTranslation } from 'react-i18next'; // <-- Импорт хука
 
 export default function Payments() {
+    const { t } = useTranslation(); // <-- Инициализация
     const [payments, setPayments] = useState([]);
     const [totalSum, setTotalSum] = useState(0);
     const userId = localStorage.getItem('userId');
@@ -13,7 +15,6 @@ export default function Payments() {
         }
     }, [userId]);
 
-    // ИСПОЛЬЗУЕМ ТВОЙ НОВЫЙ МЕТОД: GET /payments?userId={id}
     const fetchPayments = async () => {
         try {
             const response = await api.get('/payments', {
@@ -21,7 +22,7 @@ export default function Payments() {
             });
             setPayments(response.data);
         } catch (error) {
-            console.error('Не удалось загрузить историю платежей', error);
+            console.error('Fetch payments error', error);
         }
     };
 
@@ -30,37 +31,37 @@ export default function Payments() {
             const response = await api.get('/payments/sum/user', {
                 params: { 
                     userId: userId, 
-                    from: '2000-01-01T00:00:00Z', // <-- Вернули 'Z' для Instant
-                    to: '2099-12-31T23:59:59Z'    // <-- Вернули 'Z' для Instant
+                    from: '2000-01-01T00:00:00Z',
+                    to: '2099-12-31T23:59:59Z'
                 }
             });
             setTotalSum(response.data);
         } catch (error) {
-            console.error('Не удалось загрузить сумму платежей', error);
+            console.error('Fetch total sum error', error);
         }
     };
 
     return (
         <div>
             <div className="d-flex justify-content-between align-items-center mb-4">
-                <h2>Мои платежи</h2>
+                <h2>{t('payments.title')}</h2>
                 <span className="badge bg-success fs-5 shadow-sm">
-                    Всего оплачено: {totalSum} $
+                    {t('payments.total_paid')} {totalSum} $
                 </span>
             </div>
 
             {payments.length === 0 ? (
-                <div className="alert alert-info">У вас пока нет проведенных платежей.</div>
+                <div className="alert alert-info">{t('payments.empty')}</div>
             ) : (
                 <div className="table-responsive">
                     <table className="table table-hover align-middle shadow-sm">
                         <thead className="table-dark">
                             <tr>
-                                <th>ID Платежа</th>
-                                <th>Заказ №</th>
-                                <th>Сумма</th>
-                                <th>Дата</th>
-                                <th>Статус</th>
+                                <th>{t('payments.table.id')}</th>
+                                <th>{t('payments.table.order_id')}</th>
+                                <th>{t('payments.table.amount')}</th>
+                                <th>{t('payments.table.date')}</th>
+                                <th>{t('payments.table.status')}</th>
                             </tr>
                         </thead>
                         <tbody>

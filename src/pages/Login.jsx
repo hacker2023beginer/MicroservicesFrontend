@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api/axiosConfig';
 import { jwtDecode } from 'jwt-decode';
+import { useTranslation } from 'react-i18next'; // <-- Импорт хука
 
 export default function Login() {
-    // В LoginRequest поля называются login и password
+    const { t } = useTranslation(); // <-- Инициализация
     const [credentials, setCredentials] = useState({ login: '', password: '' });
     const navigate = useNavigate();
 
@@ -16,17 +17,15 @@ export default function Login() {
         e.preventDefault();
         try {
             const response = await api.post('/login', credentials);
-            const token = response.data.accessToken; // Поле из LoginResponse
+            const token = response.data.accessToken; 
             const refreshToken = response.data.refreshToken;
 
             if (token) {
                 localStorage.setItem('token', token);
                 
-                // Расшифровываем токен, чтобы попытаться достать ID или Email
                 const decoded = jwtDecode(token);
                 let userId = decoded.id || decoded.userId;
 
-                // Если в токене есть только email (sub), запрашиваем ID у бэкенда
                 if (!userId && decoded.sub) {
                     const userResponse = await api.get(`/users/email?email=${decoded.sub}`);
                     userId = userResponse.data.id;
@@ -37,12 +36,12 @@ export default function Login() {
                     localStorage.setItem('refreshToken', refreshToken);
                     navigate('/orders');
                 } else {
-                    alert('Ошибка: не удалось получить ID пользователя из системы.');
+                    alert(t('login.alerts.no_id'));
                 }
             }
         } catch (error) {
-            console.error("Ошибка входа", error);
-            alert("Неверный логин или пароль");
+            console.error("Login error", error);
+            alert(t('login.alerts.invalid_creds'));
         }
     };
 
@@ -51,23 +50,22 @@ export default function Login() {
             <div className="col-md-4">
                 <div className="card shadow-sm">
                     <div className="card-body">
-                        <h3 className="card-title text-center mb-4">Вход</h3>
+                        <h3 className="card-title text-center mb-4">{t('login.title')}</h3>
                         <form onSubmit={handleSubmit}>
                             <div className="mb-3">
-                                <label className="form-label">Логин</label>
-                                {/* name="login" строго совпадает с LoginRequest */}
+                                <label className="form-label">{t('login.login_label')}</label>
                                 <input type="text" name="login" className="form-control" 
                                     onChange={handleChange} required/>
                             </div>
                             <div className="mb-4">
-                                <label className="form-label">Пароль</label>
+                                <label className="form-label">{t('login.password_label')}</label>
                                 <input type="password" name="password" className="form-control" 
                                     onChange={handleChange} required/>
                             </div>
-                            <button type="submit" className="btn btn-primary w-100">Войти</button>
+                            <button type="submit" className="btn btn-primary w-100">{t('login.submit_btn')}</button>
                         </form>
                         <div className="mt-3 text-center">
-                            <Link to="/register" className="text-decoration-none">Нет аккаунта? Зарегистрируйтесь</Link>
+                            <Link to="/register" className="text-decoration-none">{t('login.no_account')}</Link>
                         </div>
                     </div>
                 </div>

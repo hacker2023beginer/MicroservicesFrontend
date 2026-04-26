@@ -1,7 +1,9 @@
 import { Navigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
+import { useTranslation } from 'react-i18next'; // <-- Импорт хука
 
 const AdminRoute = ({ children }) => {
+    const { t } = useTranslation(); // <-- Инициализация
     const token = localStorage.getItem('token');
     
     if (!token) {
@@ -10,7 +12,7 @@ const AdminRoute = ({ children }) => {
 
     try {
         const decoded = jwtDecode(token);
-        console.log("Токен админа:", decoded); // Оставил для дебага
+        console.log(t('adminRoute.logs.token'), decoded); 
         
         const roleField = decoded.role || decoded.roles || decoded.authorities || '';
         const roleString = JSON.stringify(roleField).toUpperCase();
@@ -19,11 +21,11 @@ const AdminRoute = ({ children }) => {
             return children;
         }
 
-        // Тихий редирект без alert, чтобы не вешать браузер
+        // Тихий редирект
         return <Navigate to="/orders" replace />;
         
     } catch (error) {
-        console.error("Ошибка проверки прав:", error);
+        console.error(t('adminRoute.errors.permission'), error);
         return <Navigate to="/login" replace />;
     }
 };

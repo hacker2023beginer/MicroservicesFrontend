@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import api from '../api/axiosConfig';
+import { useTranslation } from 'react-i18next'; // Импорт хука
 
 export default function Shop() {
+    const { t } = useTranslation(); // Инициализация
     const [items, setItems] = useState([]);
     const [cartCount, setCartCount] = useState(0);
 
@@ -10,13 +12,12 @@ export default function Shop() {
         updateCartCount();
     }, []);
 
-    // Используем твой новый метод!
     const fetchItems = async () => {
         try {
             const response = await api.get('/orders/items');
             setItems(response.data);
         } catch (error) {
-            console.error('Ошибка загрузки товаров', error);
+            console.error(t('shop.errors.load'), error);
         }
     };
 
@@ -37,21 +38,22 @@ export default function Shop() {
 
         localStorage.setItem('cart', JSON.stringify(cart));
         updateCartCount();
-        // Небольшое визуальное подтверждение
-        alert(`Товар "${item.name}" добавлен в корзину!`);
+        
+        // Используем интерполяцию для имени товара
+        alert(t('shop.alerts.added', { name: item.name }));
     };
 
     return (
         <div>
             <div className="d-flex justify-content-between align-items-center mb-4">
-                <h2>Каталог товаров</h2>
+                <h2>{t('shop.title')}</h2>
                 <a href="/cart" className="btn btn-warning fw-bold">
-                    🛒 Корзина <span className="badge bg-danger ms-1">{cartCount}</span>
+                    🛒 {t('shop.cart_btn')} <span className="badge bg-danger ms-1">{cartCount}</span>
                 </a>
             </div>
 
             {items.length === 0 ? (
-                <div className="alert alert-info">Товаров пока нет. (Администратору нужно их добавить через POST /items/create)</div>
+                <div className="alert alert-info">{t('shop.no_items')}</div>
             ) : (
                 <div className="row row-cols-1 row-cols-md-3 g-4">
                     {items.map(item => (
@@ -64,7 +66,7 @@ export default function Shop() {
                                         className="btn btn-primary w-100"
                                         onClick={() => addToCart(item)}
                                     >
-                                        Добавить в корзину
+                                        {t('shop.add_to_cart')}
                                     </button>
                                 </div>
                             </div>
