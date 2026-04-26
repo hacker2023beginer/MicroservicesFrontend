@@ -30,8 +30,8 @@ export default function Payments() {
             const response = await api.get('/payments/sum/user', {
                 params: { 
                     userId: userId, 
-                    from: '2000-01-01T00:00:00', 
-                    to: '2099-12-31T23:59:59' 
+                    from: '2000-01-01T00:00:00Z', // <-- Вернули 'Z' для Instant
+                    to: '2099-12-31T23:59:59Z'    // <-- Вернули 'Z' для Instant
                 }
             });
             setTotalSum(response.data);

@@ -10,6 +10,9 @@ import Payments from './pages/Payments';
 import Profile from './pages/Profile';
 import AdminPanel from './pages/AdminPanel';
 
+import Shop from './pages/Shop';
+import Cart from './pages/Cart';
+
 function App() {
   return (
     <BrowserRouter>
@@ -23,7 +26,8 @@ function App() {
           <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
           <Route path="/payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-          
+          <Route path="/shop" element={<ProtectedRoute><Shop /></ProtectedRoute>} />
+          <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
           {/* СТРОГИЙ МАРШРУТ ДЛЯ АДМИНА */}
           <Route path="/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
           

@@ -6,24 +6,27 @@ export default function AdminPanel() {
     const [usersPage, setUsersPage] = useState({ content: [], totalPages: 0 });
     const [userPageNum, setUserPageNum] = useState(0);
 
-    // Состояния для заказов (глобальный поиск)
+    // Состояния для заказов
     const [ordersPage, setOrdersPage] = useState({ content: [], totalPages: 0 });
     const [filters, setFilters] = useState({ status: '', from: '', to: '' });
 
     // Состояние для глобальной выручки
     const [globalSum, setGlobalSum] = useState(0);
 
+    // НОВОЕ: Состояния для товаров (Items)
+    const [items, setItems] = useState([]);
+    const [newItem, setNewItem] = useState({ name: '', price: '' });
+
     useEffect(() => {
         fetchUsers(userPageNum);
         fetchGlobalSum();
         fetchFilteredOrders();
+        fetchItems(); // Загружаем товары при открытии админки
     }, [userPageNum]);
 
-    // 1. ДЕМОНСТРАЦИЯ: GET /users (с пагинацией)
     const fetchUsers = async (page) => {
         try {
             const response = await api.get(`/users?page=${page}&size=5`);
-            // Если Gateway отдал сырую строку, принудительно парсим её в JSON
             const data = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
             setUsersPage(data);
         } catch (error) {
@@ -31,7 +34,6 @@ export default function AdminPanel() {
         }
     };
 
-    // 2. ДЕМОНСТРАЦИЯ: PATCH /activate и /deactivate
     const toggleUserStatus = async (userId, currentStatus) => {
         try {
             if (currentStatus) {
@@ -39,25 +41,19 @@ export default function AdminPanel() {
             } else {
                 await api.patch(`/users/activate/${userId}`);
             }
-            fetchUsers(userPageNum); // Обновляем список
+            fetchUsers(userPageNum); 
         } catch (error) {
             console.error('Ошибка изменения статуса', error);
         }
     };
 
-    // 3. ДЕМОНСТРАЦИЯ: GET /orders (Все параметры обязательны, даты без 'Z')
     const fetchFilteredOrders = async () => {
         try {
-            // Бэкенд ТРЕБУЕТ даты всегда, поэтому ставим дефолтные значения (без Z!)
             const fromDate = filters.from ? `${filters.from}T00:00:00` : '2000-01-01T00:00:00';
             const toDate = filters.to ? `${filters.to}T23:59:59` : '2099-12-31T23:59:59';
-            
-            // Бэкенд ТРЕБУЕТ статус всегда. Если фильтр пустой, отправляем пустую строку
             const statusParam = filters.status ? filters.status : '';
 
-            // Собираем полный URL со всеми тремя параметрами
             const query = `/orders?page=0&size=50&from=${fromDate}&to=${toDate}&status=${statusParam}`;
-
             const response = await api.get(query);
             
             const data = typeof response.data === 'string' ? JSON.parse(response.data) : response.data;
@@ -67,15 +63,55 @@ export default function AdminPanel() {
         }
     };
 
-    // 4. ДЕМОНСТРАЦИЯ: GET /payments/sum
     const fetchGlobalSum = async () => {
         try {
             const response = await api.get('/payments/sum', {
+                // Добавили 'Z' на конце обеих дат!
                 params: { from: '2000-01-01T00:00:00Z', to: '2099-12-31T23:59:59Z' }
             });
             setGlobalSum(response.data);
         } catch (error) {
             console.error('Ошибка загрузки глобальной суммы', error);
+        }
+    };
+
+    // НОВОЕ: Загрузка списка товаров
+    const fetchItems = async () => {
+        try {
+            const response = await api.get('/orders/items');
+            setItems(response.data);
+        } catch (error) {
+            console.error('Ошибка загрузки товаров', error);
+        }
+    };
+
+    // НОВОЕ: Создание товара
+    const handleCreateItem = async (e) => {
+        e.preventDefault();
+        try {
+            await api.post('/orders/items/create', {
+                name: newItem.name,
+                price: parseFloat(newItem.price)
+            });
+            alert('Товар успешно добавлен в каталог!');
+            setNewItem({ name: '', price: '' }); // Очищаем форму
+            fetchItems(); // Обновляем список
+        } catch (error) {
+            console.error('Ошибка создания товара', error);
+            alert('Не удалось создать товар.');
+        }
+    };
+
+    // НОВОЕ: Удаление товара
+    const handleDeleteItem = async (id) => {
+        if (window.confirm('Вы уверены, что хотите удалить этот товар из каталога?')) {
+            try {
+                await api.delete(`/orders/items/${id}`);
+                fetchItems();
+            } catch (error) {
+                console.error('Ошибка удаления товара', error);
+                alert('Ошибка удаления. Возможно, товар уже используется в чьем-то заказе.');
+            }
         }
     };
 
@@ -124,14 +160,13 @@ export default function AdminPanel() {
                                     ))}
                                 </tbody>
                             </table>
-                            {/* Простая пагинация */}
                             <div className="d-flex justify-content-between">
                                 <button className="btn btn-sm btn-secondary" 
                                     disabled={userPageNum === 0} 
                                     onClick={() => setUserPageNum(userPageNum - 1)}>Назад</button>
                                 <span>Страница {userPageNum + 1} из {usersPage.totalPages}</span>
                                 <button className="btn btn-sm btn-secondary" 
-                                    disabled={userPageNum >= usersPage.totalPages - 1} 
+                                    disabled={userPageNum >= (usersPage.totalPages - 1)} 
                                     onClick={() => setUserPageNum(userPageNum + 1)}>Вперед</button>
                             </div>
                         </div>
@@ -174,7 +209,7 @@ export default function AdminPanel() {
                                 </div>
                             </div>
 
-                            <div style={{ maxHeight: '250px', overflowY: 'auto' }}>
+                            <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
                                 <ul className="list-group list-group-flush">
                                     {ordersPage.content?.map(order => (
                                         <li key={order.id} className="list-group-item d-flex justify-content-between align-items-center">
@@ -194,6 +229,79 @@ export default function AdminPanel() {
                     </div>
                 </div>
             </div>
+
+            {/* НОВЫЙ БЛОК 3: Управление Каталогом (Items) */}
+            <div className="row">
+                <div className="col-12 mb-4">
+                    <div className="card shadow-sm border-warning">
+                        <div className="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                            <h5 className="mb-0 fw-bold">Управление каталогом товаров (Витрина)</h5>
+                        </div>
+                        <div className="card-body">
+                            <div className="row">
+                                {/* Форма добавления */}
+                                <div className="col-md-4 border-end">
+                                    <h6 className="mb-3">Добавить новый товар</h6>
+                                    <form onSubmit={handleCreateItem}>
+                                        <div className="mb-2">
+                                            <label className="form-label small">Название товара</label>
+                                            <input type="text" className="form-control form-control-sm" required
+                                                value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} 
+                                                placeholder="Например: Смартфон X" />
+                                        </div>
+                                        <div className="mb-3">
+                                            <label className="form-label small">Цена ($)</label>
+                                            <input type="number" step="0.01" min="0" className="form-control form-control-sm" required
+                                                value={newItem.price} onChange={e => setNewItem({...newItem, price: e.target.value})} 
+                                                placeholder="999.99" />
+                                        </div>
+                                        <button type="submit" className="btn btn-sm btn-success w-100">Добавить в каталог</button>
+                                    </form>
+                                </div>
+                                
+                                {/* Список существующих товаров */}
+                                <div className="col-md-8">
+                                    <h6 className="mb-3">Текущие товары в магазине</h6>
+                                    {items.length === 0 ? (
+                                        <div className="alert alert-secondary py-2">Каталог пуст. Добавьте первый товар!</div>
+                                    ) : (
+                                        <div className="table-responsive" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                                            <table className="table table-sm table-hover align-middle">
+                                                <thead className="table-light sticky-top">
+                                                    <tr>
+                                                        <th>ID</th>
+                                                        <th>Название</th>
+                                                        <th>Цена</th>
+                                                        <th className="text-end">Действие</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {items.map(item => (
+                                                        <tr key={item.id}>
+                                                            <td className="text-muted small">{item.id}</td>
+                                                            <td className="fw-bold">{item.name}</td>
+                                                            <td className="text-success fw-bold">{item.price} $</td>
+                                                            <td className="text-end">
+                                                                <button 
+                                                                    className="btn btn-sm btn-outline-danger"
+                                                                    onClick={() => handleDeleteItem(item.id)}
+                                                                >
+                                                                    <i className="bi bi-trash"></i> Удалить
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     );
 }

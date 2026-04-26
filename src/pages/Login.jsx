@@ -17,7 +17,8 @@ export default function Login() {
         try {
             const response = await api.post('/login', credentials);
             const token = response.data.accessToken; // Поле из LoginResponse
-            
+            const refreshToken = response.data.refreshToken;
+
             if (token) {
                 localStorage.setItem('token', token);
                 
@@ -33,6 +34,7 @@ export default function Login() {
 
                 if (userId) {
                     localStorage.setItem('userId', userId);
+                    localStorage.setItem('refreshToken', refreshToken);
                     navigate('/orders');
                 } else {
                     alert('Ошибка: не удалось получить ID пользователя из системы.');
